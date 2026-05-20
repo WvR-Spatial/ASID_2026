@@ -1,0 +1,1081 @@
+<<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Australia Shark Incident Database</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet">
+<style>
+:root {
+  --bg:      #141e26;
+  --surf:    #1c2d3a;
+  --surf2:   #243444;
+  --accent:  #3d9fbf;
+  --acc2:    #5bc4a0;
+  --text:    #d4e6f0;
+  --muted:   #5a7f96;
+  --border:  #2a3d4e;
+  --fatal:   #e05252;
+  --injured: #e8973a;
+  --uninj:   #5bc4a0;
+  --unk:     #5a7f96;
+  --c-white: #ff6b6b;
+  --c-tiger: #ffa94d;
+  --c-bull:  #74c0fc;
+  --c-wobb:  #a9e34b;
+  --c-brnz:  #da77f2;
+  --c-other: #868e96;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Header ─────────────────────────────────────────────────────── */
+header {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding: 12px 20px 10px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+  z-index: 10;
+}
+.hdr-left { display: flex; flex-direction: column; gap: 2px; }
+.eyebrow {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+h1 { font-size: 1.25rem; font-weight: 600; line-height: 1.2; }
+h1 span { color: var(--acc2); }
+.subtitle { font-size: 0.7rem; color: var(--muted); font-weight: 300; }
+.hdr-right {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.6rem;
+  color: var(--muted);
+  text-align: right;
+  line-height: 1.8;
+}
+
+/* ── Main layout ─────────────────────────────────────────────────── */
+#app {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+/* ── Sidebar ─────────────────────────────────────────────────────── */
+#sidebar {
+  width: 300px;
+  flex-shrink: 0;
+  overflow-y: auto;
+  background: var(--bg);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+/* ── Stats bar ───────────────────────────────────────────────────── */
+#stats {
+  background: var(--surf);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+#stats-count {
+  font-family: 'DM Mono', monospace;
+  font-size: 1.3rem;
+  font-weight: 500;
+  color: var(--accent);
+}
+#stats-meta {
+  font-size: 0.65rem;
+  color: var(--muted);
+  text-align: right;
+  line-height: 1.7;
+}
+#stats-fatal { color: var(--fatal); }
+
+/* ── Cards ───────────────────────────────────────────────────────── */
+.card {
+  background: var(--surf);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+}
+.card-title {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+
+/* ── Filters ─────────────────────────────────────────────────────── */
+.filter-group { margin-bottom: 12px; }
+.filter-label {
+  font-size: 0.68rem;
+  color: var(--muted);
+  margin-bottom: 5px;
+  display: block;
+}
+select {
+  width: 100%;
+  background: var(--surf2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+  font-family: 'DM Mono', monospace;
+  font-size: 0.72rem;
+  padding: 5px 8px;
+  outline: none;
+  cursor: pointer;
+}
+select:focus { border-color: var(--accent); }
+
+.check-group { display: flex; flex-direction: column; gap: 5px; }
+.check-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+.check-item input[type="checkbox"] {
+  accent-color: var(--accent);
+  width: 13px; height: 13px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.dot-swatch {
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: inline-block;
+}
+.dot-hollow {
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  border: 1.5px solid var(--muted);
+  flex-shrink: 0;
+  display: inline-block;
+}
+
+#reset-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--muted);
+  font-family: 'DM Mono', monospace;
+  font-size: 0.65rem;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+  margin-top: 4px;
+}
+#reset-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ── Charts ──────────────────────────────────────────────────────── */
+.chart-label {
+  font-size: 0.63rem;
+  color: var(--muted);
+  margin-bottom: 6px;
+  display: block;
+}
+.chart-wrap { margin-bottom: 16px; }
+.chart-wrap:last-child { margin-bottom: 0; }
+svg.chart { width: 100%; overflow: visible; display: block; }
+
+/* ── Map ─────────────────────────────────────────────────────────── */
+#map { flex: 1; position: relative; }
+.maplibregl-canvas { outline: none; }
+
+/* ── Legend overlay ──────────────────────────────────────────────── */
+#legend {
+  position: absolute;
+  bottom: 28px;
+  right: 10px;
+  z-index: 5;
+  background: rgba(28,45,58,0.92);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  backdrop-filter: blur(4px);
+  min-width: 130px;
+}
+#legend .leg-title {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.58rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  margin-bottom: 7px;
+}
+.leg-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.68rem;
+  margin-bottom: 4px;
+  color: var(--text);
+}
+.leg-item:last-child { margin-bottom: 0; }
+.leg-dot {
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.leg-dot.hollow {
+  background: transparent;
+  border: 1.5px solid var(--muted);
+}
+.leg-divider {
+  border-top: 1px solid var(--border);
+  margin: 6px 0;
+}
+
+/* ── Cluster circles ─────────────────────────────────────────────── */
+/* styled via MapLibre paint options */
+
+/* ── Popup ───────────────────────────────────────────────────────── */
+.maplibregl-popup-content {
+  background: var(--surf) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 8px !important;
+  padding: 12px !important;
+  color: var(--text) !important;
+  font-family: 'DM Sans', sans-serif !important;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4) !important;
+  max-width: 260px !important;
+}
+.maplibregl-popup-tip { display: none !important; }
+.maplibregl-popup-close-button {
+  color: var(--muted) !important;
+  font-size: 16px !important;
+  padding: 4px 8px !important;
+}
+.pop-species {
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin-bottom: 2px;
+}
+.pop-sci {
+  font-style: italic;
+  font-size: 0.68rem;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+.pop-table { width: 100%; border-collapse: collapse; font-size: 0.72rem; }
+.pop-table td { padding: 2px 0; vertical-align: top; }
+.pop-table td:first-child { color: var(--muted); width: 80px; }
+.pop-badge {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 0.65rem;
+  font-weight: 600;
+}
+.badge-fatal    { background: rgba(224,82,82,0.2); color: var(--fatal); }
+.badge-injured  { background: rgba(232,151,58,0.2); color: var(--injured); }
+.badge-uninjured{ background: rgba(91,196,160,0.2); color: var(--uninj); }
+.badge-unknown  { background: rgba(90,127,150,0.2); color: var(--muted); }
+.pop-note {
+  margin-top: 6px;
+  font-size: 0.63rem;
+  color: var(--muted);
+  font-style: italic;
+}
+
+/* ── Loading overlay ─────────────────────────────────────────────── */
+#loading {
+  position: absolute;
+  inset: 0;
+  background: rgba(20,30,38,0.9);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  z-index: 30;
+  transition: opacity 0.3s;
+}
+#loading.hidden { opacity: 0; pointer-events: none; }
+.spinner {
+  width: 28px; height: 28px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.load-text {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.72rem;
+  color: var(--accent);
+  letter-spacing: 0.08em;
+}
+
+/* ── Footer ──────────────────────────────────────────────────────── */
+footer {
+  flex-shrink: 0;
+  font-size: 0.65rem;
+  color: var(--muted);
+  text-align: center;
+  padding: 6px 16px;
+  border-top: 1px solid var(--border);
+  background: var(--bg);
+}
+footer a { color: var(--accent); text-decoration: none; }
+footer a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hdr-left">
+    <span class="eyebrow">Spatial Incident Analysis</span>
+    <h1>Australian <span>Shark Incident</span> Database</h1>
+    <p class="subtitle">1,296 recorded incidents · 1791 – 2026 · geocoded incident locations</p>
+  </div>
+  <div class="hdr-right">
+    ASID · Flinders University<br>
+    cjabradshaw/AustralianSharkIncidentDatabase<br>
+    0.05° coordinate resolution
+  </div>
+</header>
+
+<div id="app">
+  <aside id="sidebar">
+
+    <!-- Stats -->
+    <div id="stats">
+      <div>
+        <div id="stats-count">—</div>
+        <div style="font-size:0.63rem;color:var(--muted)">incidents shown</div>
+      </div>
+      <div id="stats-meta">
+        <div><span id="stats-fatal" style="color:var(--fatal)">—</span> fatal</div>
+        <div><span id="stats-unprov">—</span> unprovoked</div>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card">
+      <div class="card-title">Filters</div>
+
+      <div class="filter-group">
+        <label class="filter-label">From year</label>
+        <select id="sel-year">
+          <option value="0">All time (1791–present)</option>
+          <option value="1950">Since 1950</option>
+          <option value="1960" selected>Since 1960</option>
+          <option value="1970">Since 1970</option>
+          <option value="1980">Since 1980</option>
+          <option value="1990">Since 1990</option>
+          <option value="2000">Since 2000</option>
+          <option value="2010">Since 2010</option>
+          <option value="2020">Since 2020</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label class="filter-label">Outcome</label>
+        <div class="check-group">
+          <label class="check-item">
+            <input type="checkbox" data-filter="outcome" value="fatal" checked>
+            <span class="dot-swatch" style="background:var(--fatal)"></span>Fatal
+          </label>
+          <label class="check-item">
+            <input type="checkbox" data-filter="outcome" value="injured" checked>
+            <span class="dot-swatch" style="background:var(--injured)"></span>Injured
+          </label>
+          <label class="check-item">
+            <input type="checkbox" data-filter="outcome" value="uninjured" checked>
+            <span class="dot-swatch" style="background:var(--uninj)"></span>Uninjured
+          </label>
+          <label class="check-item">
+            <input type="checkbox" data-filter="outcome" value="unknown" checked>
+            <span class="dot-swatch" style="background:var(--unk)"></span>Unknown
+          </label>
+        </div>
+      </div>
+
+      <div class="filter-group">
+        <label class="filter-label">Incident type</label>
+        <div class="check-group">
+          <label class="check-item">
+            <input type="checkbox" data-filter="provoked" value="unprovoked" checked>Unprovoked
+          </label>
+          <label class="check-item">
+            <input type="checkbox" data-filter="provoked" value="provoked" checked>Provoked
+          </label>
+          <label class="check-item">
+            <input type="checkbox" data-filter="provoked" value="unknown" checked>Unknown
+          </label>
+        </div>
+      </div>
+
+      <button id="reset-btn">Reset filters</button>
+    </div>
+
+    <!-- Charts -->
+    <div class="card">
+      <div class="card-title">Breakdown — filtered selection</div>
+
+      <div class="chart-wrap">
+        <span class="chart-label">Incidents by month</span>
+        <svg id="chart-monthly" class="chart" height="90"></svg>
+      </div>
+
+      <div class="chart-wrap">
+        <span class="chart-label">Top species</span>
+        <svg id="chart-species" class="chart" height="140"></svg>
+      </div>
+
+      <div class="chart-wrap">
+        <span class="chart-label">Incidents by state</span>
+        <svg id="chart-state" class="chart" height="130"></svg>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- Map -->
+  <div id="map">
+    <div id="loading">
+      <div class="spinner"></div>
+      <span class="load-text">Loading incident data…</span>
+    </div>
+
+    <!-- Legend -->
+    <div id="legend">
+      <div class="leg-title">Species</div>
+      <div class="leg-item"><span class="leg-dot" style="background:var(--c-white)"></span>White Shark</div>
+      <div class="leg-item"><span class="leg-dot" style="background:var(--c-tiger)"></span>Tiger Shark</div>
+      <div class="leg-item"><span class="leg-dot" style="background:var(--c-bull)"></span>Bull Shark</div>
+      <div class="leg-item"><span class="leg-dot" style="background:var(--c-wobb)"></span>Wobbegong</div>
+      <div class="leg-item"><span class="leg-dot" style="background:var(--c-brnz)"></span>Bronze Whaler</div>
+      <div class="leg-item"><span class="leg-dot" style="background:var(--c-other)"></span>Other / Unknown</div>
+      <div class="leg-divider"></div>
+      <div class="leg-item"><span class="leg-dot hollow"></span>Approx. location</div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  Data:
+  <a href="https://github.com/cjabradshaw/AustralianSharkIncidentDatabase" target="_blank">
+    Australian Shark Incident Database · Flinders University
+  </a>
+  &ensp;·&ensp;
+  Map:
+  <a href="https://maplibre.org/" target="_blank">MapLibre GL JS</a>
+  &ensp;·&ensp;
+  Charts:
+  <a href="https://d3js.org/" target="_blank">D3</a>
+  &ensp;·&ensp;
+  Tiles: &copy; <a href="https://www.esri.com/" target="_blank">Esri</a>
+  — Sources: GEBCO, NOAA, NGA, Garmin, OceanIQ
+  &ensp;·&ensp; &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>
+</footer>
+
+<script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script type="module">
+import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7.8.5/+esm";
+
+// ── Constants ─────────────────────────────────────────────────────────────────
+const DATA_PATH = "./data/asid_cleaned.csv";
+
+const SPECIES_COLORS = {
+  'White Shark':   'var(--c-white)',
+  'Tiger Shark':   'var(--c-tiger)',
+  'Bull Shark':    'var(--c-bull)',
+  'wobbegong':     'var(--c-wobb)',
+  'Bronze Whaler': 'var(--c-brnz)',
+};
+const SPECIES_HEX = {
+  'White Shark':   '#ff6b6b',
+  'Tiger Shark':   '#ffa94d',
+  'Bull Shark':    '#74c0fc',
+  'wobbegong':     '#a9e34b',
+  'Bronze Whaler': '#da77f2',
+};
+const OTHER_HEX = '#868e96';
+
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const STATES  = ['NSW','QLD','WA','SA','VIC','TAS','NT'];
+
+// ── State ─────────────────────────────────────────────────────────────────────
+const filterState = {
+  fromYear: 1960,
+  outcomes: new Set(['fatal','injured','uninjured','unknown']),
+  provoked: new Set(['unprovoked','provoked','unknown']),
+};
+
+let allRecords  = [];
+let mapReady    = false;
+let activePopup = null;
+
+// ── Map ───────────────────────────────────────────────────────────────────────
+const map = new maplibregl.Map({
+  container: 'map',
+  style: {
+    version: 8,
+    glyphs: 'https://fonts.openmaptiles.org/{fontstack}/{range}.pbf',
+    sources: {
+      'ocean-base': {
+        type: 'raster',
+        tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}'],
+        tileSize: 256,
+        attribution: 'Tiles &copy; Esri &mdash; Sources: GEBCO, NOAA, NGA, Garmin, OceanIQ',
+        maxzoom: 13,
+      },
+      'ocean-ref': {
+        type: 'raster',
+        tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Reference/MapServer/tile/{z}/{y}/{x}'],
+        tileSize: 256,
+        maxzoom: 13,
+      },
+    },
+    layers: [
+      { id: 'ocean-base', type: 'raster', source: 'ocean-base' },
+      { id: 'ocean-ref',  type: 'raster', source: 'ocean-ref'  },
+    ],
+  },
+  center: [133, -27],
+  zoom: 3.5,
+  minZoom: 2,
+  attributionControl: false,
+});
+
+map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-left');
+map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
+
+// ── GeoJSON builder ───────────────────────────────────────────────────────────
+function toGeoJSON(records) {
+  return {
+    type: 'FeatureCollection',
+    features: records
+      .filter(d => d.lat !== null && d.lon !== null)
+      .map(d => ({
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: [d.lon, d.lat] },
+        properties: {
+          uin:      d.uin,
+          year:     d.year,
+          month:    d.month,
+          injury:   d.injury,
+          species:  d.species,
+          provoked: d.provoked,
+          state:    d.state,
+          location: d.location,
+          activity: d.activity,
+          site:     d.site,
+          sciName:  d.sciName,
+          quality:  d.quality,
+        }
+      }))
+  };
+}
+
+// ── Species colour expression (for MapLibre paint) ────────────────────────────
+const speciesColorExpr = [
+  'match', ['get', 'species'],
+  'White Shark',   '#ff6b6b',
+  'Tiger Shark',   '#ffa94d',
+  'Bull Shark',    '#74c0fc',
+  'wobbegong',     '#a9e34b',
+  'Bronze Whaler', '#da77f2',
+  '#868e96'
+];
+
+// ── Init map layers ───────────────────────────────────────────────────────────
+function initLayers(geojson) {
+  map.addSource('incidents', {
+    type: 'geojson',
+    data: geojson,
+    cluster: true,
+    clusterMaxZoom: 8,
+    clusterRadius: 40,
+  });
+
+  // Cluster circles — sized and coloured by point count
+  map.addLayer({
+    id: 'clusters',
+    type: 'circle',
+    source: 'incidents',
+    filter: ['has', 'point_count'],
+    paint: {
+      'circle-color': [
+        'step', ['get', 'point_count'],
+        '#1a5f7a', 10,
+        '#0e4d6b', 50,
+        '#063349',
+      ],
+      'circle-radius': [
+        'step', ['get', 'point_count'],
+        16, 10, 22, 50, 30,
+      ],
+      'circle-stroke-width': 1.5,
+      'circle-stroke-color': 'rgba(255,255,255,0.35)',
+      'circle-opacity': 0.88,
+    },
+  });
+
+  // Cluster count labels
+  map.addLayer({
+    id: 'cluster-count',
+    type: 'symbol',
+    source: 'incidents',
+    filter: ['has', 'point_count'],
+    layout: {
+      'text-field': '{point_count_abbreviated}',
+      'text-font':  ['Noto Sans Regular'],
+      'text-size':  11,
+    },
+    paint: {
+      'text-color': '#0d1b26',
+    },
+  });
+
+  // Unclustered — high-precision (filled)
+  map.addLayer({
+    id: 'pts-high',
+    type: 'circle',
+    source: 'incidents',
+    filter: ['all',
+      ['!', ['has', 'point_count']],
+      ['==', ['get', 'quality'], 'high'],
+    ],
+    paint: {
+      'circle-color':        speciesColorExpr,
+      'circle-radius':       5,
+      'circle-opacity':      0.85,
+      'circle-stroke-width': 0.8,
+      'circle-stroke-color': 'rgba(0,0,0,0.4)',
+    },
+  });
+
+  // Unclustered — low-precision (hollow)
+  map.addLayer({
+    id: 'pts-low',
+    type: 'circle',
+    source: 'incidents',
+    filter: ['all',
+      ['!', ['has', 'point_count']],
+      ['==', ['get', 'quality'], 'low'],
+    ],
+    paint: {
+      'circle-color':        'transparent',
+      'circle-radius':       6,
+      'circle-stroke-width': 2,
+      'circle-stroke-color': speciesColorExpr,
+      'circle-opacity':      1,
+    },
+  });
+}
+
+// ── Popup ─────────────────────────────────────────────────────────────────────
+function showPopup(e) {
+  const p = e.features[0].properties;
+  const coords = [...e.features[0].geometry.coordinates];
+  const badge = p.injury ? `<span class="pop-badge badge-${p.injury}">${p.injury}</span>` : '—';
+
+  const html = `
+    <div class="pop-species">${p.species || 'Unknown species'}</div>
+    <div class="pop-sci">${p.sciName || ''}</div>
+    <table class="pop-table">
+      <tr><td>Year</td><td>${p.year || '—'}</td></tr>
+      <tr><td>Location</td><td>${p.location || '—'}</td></tr>
+      <tr><td>Outcome</td><td>${badge}</td></tr>
+      <tr><td>Activity</td><td>${p.activity || '—'}</td></tr>
+      <tr><td>Type</td><td>${p.provoked || '—'}</td></tr>
+      <tr><td>Site</td><td>${p.site || '—'}</td></tr>
+    </table>
+    ${p.quality === 'low' ? '<div class="pop-note">⚠ Approximate location only</div>' : ''}
+  `;
+
+  if (activePopup) activePopup.remove();
+  activePopup = new maplibregl.Popup({ maxWidth: '260px', closeButton: true })
+    .setLngLat(coords)
+    .setHTML(html)
+    .addTo(map);
+}
+
+// ── Cluster zoom ──────────────────────────────────────────────────────────────
+map.on('click', 'clusters', (e) => {
+  const f = map.queryRenderedFeatures(e.point, { layers: ['clusters'] });
+  if (!f.length) return;
+  map.getSource('incidents').getClusterExpansionZoom(
+    f[0].properties.cluster_id,
+    (err, zoom) => {
+      if (err) return;
+      map.easeTo({ center: f[0].geometry.coordinates, zoom: zoom + 0.5 });
+    }
+  );
+});
+
+// ── Point click popup ─────────────────────────────────────────────────────────
+map.on('click', 'pts-high', showPopup);
+map.on('click', 'pts-low',  showPopup);
+
+// Cursor changes
+['clusters','pts-high','pts-low'].forEach(layer => {
+  map.on('mouseenter', layer, () => { map.getCanvas().style.cursor = 'pointer'; });
+  map.on('mouseleave', layer, () => { map.getCanvas().style.cursor = ''; });
+});
+
+// ── Map ready ─────────────────────────────────────────────────────────────────
+map.on('load', () => {
+  mapReady = true;
+  if (allRecords.length) {
+    const filtered = applyFilters();
+    initLayers(toGeoJSON(filtered));
+    updateCharts(filtered);
+    updateStats(filtered);
+  }
+});
+
+// ── Filter logic ──────────────────────────────────────────────────────────────
+function applyFilters() {
+  return allRecords.filter(d => {
+    if (filterState.fromYear > 0 && d.year < filterState.fromYear) return false;
+    if (!filterState.outcomes.has(d.injury))  return false;
+    if (!filterState.provoked.has(d.provoked)) return false;
+    return true;
+  });
+}
+
+// ── Update map source ─────────────────────────────────────────────────────────
+function updateMap(filtered) {
+  if (!mapReady) return;
+  const src = map.getSource('incidents');
+  if (src) {
+    src.setData(toGeoJSON(filtered));
+  } else {
+    initLayers(toGeoJSON(filtered));
+  }
+}
+
+// ── Update stats bar ──────────────────────────────────────────────────────────
+function updateStats(filtered) {
+  const n       = filtered.length;
+  const fatal   = filtered.filter(d => d.injury === 'fatal').length;
+  const unprov  = filtered.filter(d => d.provoked === 'unprovoked').length;
+  document.getElementById('stats-count').textContent = n.toLocaleString();
+  document.getElementById('stats-fatal').textContent = fatal;
+  document.getElementById('stats-unprov').textContent = unprov;
+}
+
+// ── Charts ────────────────────────────────────────────────────────────────────
+const CHART_FONT = "'DM Mono', monospace";
+const CHART_TEXT = '#5a7f96';
+const CHART_TICK = '#2a3d4e';
+
+function clearSVG(el) {
+  while (el.firstChild) el.removeChild(el.firstChild);
+}
+
+// Monthly bar chart
+function drawMonthly(data) {
+  const svgEl = document.getElementById('chart-monthly');
+  clearSVG(svgEl);
+  const W = svgEl.clientWidth || 260;
+  const H = 90;
+  const m = { t: 6, r: 6, b: 22, l: 28 };
+  const w = W - m.l - m.r;
+  const h = H - m.t - m.b;
+
+  const counts = d3.rollup(data, v => v.length, d => d.month);
+  const vals   = d3.range(1, 13).map(mo => ({ mo, n: counts.get(mo) || 0 }));
+  const yMax   = d3.max(vals, d => d.n) || 1;
+
+  const x = d3.scaleBand().domain(d3.range(1,13)).range([0, w]).padding(0.18);
+  const y = d3.scaleLinear().domain([0, yMax]).range([h, 0]).nice();
+
+  const svg = d3.select(svgEl)
+    .attr('viewBox', `0 0 ${W} ${H}`)
+    .attr('height', H);
+
+  const g = svg.append('g').attr('transform', `translate(${m.l},${m.t})`);
+
+  // Y gridlines
+  g.append('g').attr('class', 'grid')
+    .call(d3.axisLeft(y).ticks(3).tickSize(-w).tickFormat(''))
+    .call(ax => { ax.select('.domain').remove(); ax.selectAll('line').attr('stroke', CHART_TICK); });
+
+  // Bars
+  g.selectAll('rect').data(vals).join('rect')
+    .attr('x', d => x(d.mo))
+    .attr('y', d => y(d.n))
+    .attr('width', x.bandwidth())
+    .attr('height', d => h - y(d.n))
+    .attr('fill', '#3d9fbf')
+    .attr('opacity', 0.75)
+    .attr('rx', 1);
+
+  // X axis — month initials
+  g.append('g').attr('transform', `translate(0,${h})`)
+    .call(d3.axisBottom(x).tickFormat(d => MONTHS[d-1][0]))
+    .call(ax => {
+      ax.select('.domain').attr('stroke', CHART_TICK);
+      ax.selectAll('text').attr('fill', CHART_TEXT).attr('font-size', 9).attr('font-family', CHART_FONT);
+      ax.selectAll('line').attr('stroke', CHART_TICK);
+    });
+
+  // Y axis
+  g.append('g')
+    .call(d3.axisLeft(y).ticks(3))
+    .call(ax => {
+      ax.select('.domain').remove();
+      ax.selectAll('text').attr('fill', CHART_TEXT).attr('font-size', 9).attr('font-family', CHART_FONT);
+      ax.selectAll('line').remove();
+    });
+}
+
+// Species horizontal bar
+function drawSpecies(data) {
+  const svgEl = document.getElementById('chart-species');
+  clearSVG(svgEl);
+  const W = svgEl.clientWidth || 260;
+  const H = 140;
+  const m = { t: 4, r: 50, b: 4, l: 88 };
+  const w = W - m.l - m.r;
+  const h = H - m.t - m.b;
+
+  const counts = d3.rollup(data, v => v.length, d => d.species || 'Unknown');
+  const sorted = Array.from(counts, ([k, v]) => ({ k, v }))
+    .sort((a, b) => b.v - a.v);
+  const top6   = sorted.slice(0, 6);
+  const otherN = sorted.slice(6).reduce((s, d) => s + d.v, 0);
+  if (otherN > 0) top6.push({ k: 'Other', v: otherN });
+  const rows = top6.slice(0, 7).reverse();
+
+  const x = d3.scaleLinear().domain([0, d3.max(rows, d => d.v) || 1]).range([0, w]).nice();
+  const y = d3.scaleBand().domain(rows.map(d => d.k)).range([h, 0]).padding(0.25);
+
+  const svg = d3.select(svgEl)
+    .attr('viewBox', `0 0 ${W} ${H}`)
+    .attr('height', H);
+
+  const g = svg.append('g').attr('transform', `translate(${m.l},${m.t})`);
+
+  // Bars
+  g.selectAll('rect').data(rows).join('rect')
+    .attr('y', d => y(d.k))
+    .attr('height', y.bandwidth())
+    .attr('width', d => x(d.v))
+    .attr('fill', d => SPECIES_HEX[d.k] || OTHER_HEX)
+    .attr('opacity', 0.8)
+    .attr('rx', 2);
+
+  // Count labels
+  g.selectAll('.bar-label').data(rows).join('text')
+    .attr('class', 'bar-label')
+    .attr('x', d => x(d.v) + 4)
+    .attr('y', d => y(d.k) + y.bandwidth() / 2)
+    .attr('dominant-baseline', 'middle')
+    .attr('fill', CHART_TEXT)
+    .attr('font-size', 9)
+    .attr('font-family', CHART_FONT)
+    .text(d => d.v);
+
+  // Y axis (species labels)
+  g.append('g')
+    .call(d3.axisLeft(y).tickSize(0))
+    .call(ax => {
+      ax.select('.domain').remove();
+      ax.selectAll('text')
+        .attr('fill', '#d4e6f0')
+        .attr('font-size', 9)
+        .attr('font-family', CHART_FONT)
+        .attr('text-anchor', 'end')
+        .attr('dx', -4);
+    });
+}
+
+// State stacked bar chart
+function drawState(data) {
+  const svgEl = document.getElementById('chart-state');
+  clearSVG(svgEl);
+  const W = svgEl.clientWidth || 260;
+  const H = 130;
+  const m = { t: 4, r: 40, b: 4, l: 35 };
+  const w = W - m.l - m.r;
+  const h = H - m.t - m.b;
+
+  // Build stacked data per state
+  const outcomes = ['fatal', 'injured', 'uninjured', 'unknown'];
+  const outColors = { fatal: '#e05252', injured: '#e8973a', uninjured: '#5bc4a0', unknown: '#5a7f96' };
+
+  const rows = STATES.map(st => {
+    const sub = data.filter(d => d.state === st);
+    const obj = { state: st };
+    outcomes.forEach(o => { obj[o] = sub.filter(d => d.injury === o).length; });
+    obj.total = sub.length;
+    return obj;
+  }).filter(r => r.total > 0)
+    .sort((a, b) => b.total - a.total);
+
+  const stacked = d3.stack().keys(outcomes)(rows);
+  const xMax    = d3.max(rows, d => d.total) || 1;
+
+  const x = d3.scaleLinear().domain([0, xMax]).range([0, w]).nice();
+  const y = d3.scaleBand().domain(rows.map(d => d.state)).range([0, h]).padding(0.25);
+
+  const svg = d3.select(svgEl)
+    .attr('viewBox', `0 0 ${W} ${H}`)
+    .attr('height', H);
+
+  const g = svg.append('g').attr('transform', `translate(${m.l},${m.t})`);
+
+  // Stacked bars
+  stacked.forEach(layer => {
+    g.selectAll(`.bar-${layer.key}`).data(layer).join('rect')
+      .attr('class', `bar-${layer.key}`)
+      .attr('y', d => y(d.data.state))
+      .attr('x', d => x(d[0]))
+      .attr('width', d => Math.max(0, x(d[1]) - x(d[0])))
+      .attr('height', y.bandwidth())
+      .attr('fill', outColors[layer.key])
+      .attr('opacity', 0.8);
+  });
+
+  // Total labels
+  g.selectAll('.tot-label').data(rows).join('text')
+    .attr('class', 'tot-label')
+    .attr('x', d => x(d.total) + 4)
+    .attr('y', d => y(d.state) + y.bandwidth() / 2)
+    .attr('dominant-baseline', 'middle')
+    .attr('fill', CHART_TEXT)
+    .attr('font-size', 9)
+    .attr('font-family', CHART_FONT)
+    .text(d => d.total);
+
+  // Y axis (state labels)
+  g.append('g')
+    .call(d3.axisLeft(y).tickSize(0))
+    .call(ax => {
+      ax.select('.domain').remove();
+      ax.selectAll('text')
+        .attr('fill', '#d4e6f0')
+        .attr('font-size', 9)
+        .attr('font-family', CHART_FONT);
+    });
+}
+
+function updateCharts(filtered) {
+  drawMonthly(filtered);
+  drawSpecies(filtered);
+  drawState(filtered);
+}
+
+// ── Main update orchestrator ──────────────────────────────────────────────────
+function update() {
+  const filtered = applyFilters();
+  updateMap(filtered);
+  updateCharts(filtered);
+  updateStats(filtered);
+  if (activePopup) { activePopup.remove(); activePopup = null; }
+}
+
+// ── Filter event wiring ───────────────────────────────────────────────────────
+document.getElementById('sel-year').addEventListener('change', e => {
+  filterState.fromYear = +e.target.value;
+  update();
+});
+
+document.querySelectorAll('[data-filter="outcome"]').forEach(cb => {
+  cb.addEventListener('change', () => {
+    filterState.outcomes = new Set(
+      [...document.querySelectorAll('[data-filter="outcome"]:checked')].map(el => el.value)
+    );
+    update();
+  });
+});
+
+document.querySelectorAll('[data-filter="provoked"]').forEach(cb => {
+  cb.addEventListener('change', () => {
+    filterState.provoked = new Set(
+      [...document.querySelectorAll('[data-filter="provoked"]:checked')].map(el => el.value)
+    );
+    update();
+  });
+});
+
+document.getElementById('reset-btn').addEventListener('click', () => {
+  filterState.fromYear = 1960;
+  filterState.outcomes = new Set(['fatal','injured','uninjured','unknown']);
+  filterState.provoked = new Set(['unprovoked','provoked','unknown']);
+
+  document.getElementById('sel-year').value = '1960';
+  document.querySelectorAll('[data-filter="outcome"]').forEach(cb => cb.checked = true);
+  document.querySelectorAll('[data-filter="provoked"]').forEach(cb => cb.checked = true);
+  update();
+});
+
+// ── Data load ─────────────────────────────────────────────────────────────────
+Papa.parse(DATA_PATH, {
+  download: true,
+  header: true,
+  skipEmptyLines: true,
+  complete: ({ data }) => {
+    allRecords = data
+      .map(r => ({
+        uin:      r['UIN'],
+        year:     +r['Incident.year'] || 0,
+        month:    +r['Incident.month'] || 0,
+        injury:   (r['Victim.injury']  || 'unknown').toLowerCase().trim(),
+        state:    (r['State']           || '').trim(),
+        location: (r['Location']        || '').trim(),
+        lat:      r['Latitude']  !== '' ? +r['Latitude']  : null,
+        lon:      r['Longitude'] !== '' ? +r['Longitude'] : null,
+        species:  (r['Shark.common.name'] || '').trim(),
+        sciName:  (r['Shark.scientific.name'] || '').trim(),
+        provoked: (r['Provoked/unprovoked'] || 'unknown').toLowerCase().trim(),
+        activity: (r['Victim.activity'] || '').trim(),
+        site:     (r['Site.category']   || '').trim(),
+        quality:  (r['coord_quality']   || 'high').trim(),
+      }))
+      .filter(d => d.year > 0);
+
+    document.getElementById('loading').classList.add('hidden');
+
+    const filtered = applyFilters();
+    updateStats(filtered);
+    updateCharts(filtered);
+
+    if (mapReady) {
+      initLayers(toGeoJSON(filtered));
+    }
+    // If map not ready yet, map.on('load') will pick up allRecords
+  },
+  error: (err) => {
+    document.querySelector('.load-text').textContent = `Error loading data: ${err.message}`;
+  }
+});
+</script>
+</body>
+</html>
